@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="@rafaelrrgarcia">
+    <meta name="description" content="Let's play! And customize. Word search generator to you to have fun.">
+    <meta name="keywords" content="javascript, web, html, challenger">
+    <title>Word Search Generator - by @rafaelrrgarcia</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Roboto');
+        section {
+            font-family: 'Roboto', sans-serif;
+            padding: 10px;
+            margin: 10px;
+            align-items: center;
+            display: flex;
+            flex-direction: column;
+        }
+        table {
+            border-collapse: collapse;
+            min-width: -webkit-fill-available;
+        }
+        td {
+            border: 1px solid black;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+        }
+        
+        input[type=button] {
+            background-color: black;
+            color: white;
+            border: none;
+            padding: 5px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+
+        /* customize input fields to black borders withour rounded */
+        input[type=text], input[type=number] {
+            border: 2px solid black;
+            padding: 3px;
+            border-radius: 0;
+            width: 100%;
+        }
+
+        #main{
+            box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+        }
+        #formLetters{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f2f2f2;
+            padding: 10px 30px;
+            width: 80%;
+
+        }
+
+        #formLetters input{
+            margin: 5px;
+        }
+
+        #formLetters label{
+            margin: 5px;
+        }
+
+        #highlight {
+            display: none;
+            margin-top: 15px;
+        }
+
+        @media screen and (min-width: 768px) {
+            section { width: 44%; float: left}
+        }
+    </style>
+</head>
+<body>
+    <section id="main">
+        <h1>Word Search Generator<br/><small>by @rafaelrrgarcia</small></h1>
+        <p>Let's play! And customize. Word search generator to you to have fun.</p>     
+        <div id="formLetters">
+            <label for="words">Words separated by commas:</label>
+            <input type="text" name="words" id="words" placeholder="word1,word2,word3..." required>
+            <label for="letters">Characters to fill the grid:</label>
+            <input type="text" name="letters" id="letters" placeholder="ABCDEFGHIJKLMNOPQRSTUVWXYZ" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ" required>
+            <label for="gridLength">Grid minimum length:</label>
+            <input type="number" name="gridLength" id="gridLength" placeholder="10" value="10" required>
+            <input type="button" onclick="generateGrid()" value="Generate">
+        </div>
+    </section>
+    <section id="grid">
+        <table id="container"></table> 
+        <input id="highlight" type="button" onclick="switchWordChasedHighlight()" value="Highlight">
+    </section>
+    <script>
+
+    var highlightChasedWords = false;
+
+    // Mask words input to avoid blank spaces
+    document.getElementById('words').addEventListener('input', function(e){
+        this.value = this.value.replace(/ /g, '');
+    });
+
+    // Main function to generate grid
+    function generateGrid(){
+        highlightChasedWords = false;
+
+        // Defines the words to be used
+        const catchedWords = document.getElementById('words').value;
+        if(catchedWords == ''){
+            alert('Please, fill the words field');
+            return;
+        }
+        const words = catchedWords.split(',');
+
+        // Defines the random letters to fill the grid
+        const letters = document.getElementById('letters').value;
+        if(letters == ''){
+            alert('Please, fill the letters field');
+            return;
+        }
+        // Defines the grid minimum length
+        let gridLength = document.getElementById('gridLength').value;
+        if(gridLength == ''){
+            alert('Please, fill the grid length field');
+            return;
+        }
+
+        // Get the longest word and set it as the grid length (vertical or horizontal) if it's bigger than the grid length
+        let longestWord = 0;
+        let i = 0;
+        for (const word of words) {
+            if (word.length > longestWord) {
+                longestWord = word.length;
+            }
+            // convert original word to lowercase to detect real words in the future
+            words[i] = word.toLowerCase(); 
+            i++;
+        }
+
+        // Set the grid length to the longest word
+        if (longestWord > gridLength) {
+            gridLength = longestWord;
+        }
+
+        // Defines grid and fill it with underscores
+        const grid = [];
+        for (let i = 0; i < gridLength; i++) {
+            grid[i] = [];
+            for (let j = 0; j < gridLength; j++) {
+                grid[i][j] = '_';
+            }
+        }
+
+        // Shuffle the words
+        words.sort(() => Math.random() - 0.5);
+
+        // Place the words in the grid (vertical and horizontal)
+        for (const word of words) {
+            let row = Math.floor(Math.random() * gridLength);
+            let col = Math.floor(Math.random() * gridLength);
+            let dir = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+            if (dir === 'horizontal') {
+                // check if have spaces for all the letters and if the word will be out of the grid
+                let doneWithPosition = false;
+                while (!doneWithPosition) {
+                    if (col + word.length > gridLength) {
+                        // if it does, try again
+                        col = Math.floor(Math.random() * gridLength);
+                    } else {
+                        doneWithPosition = true;
+                    }
+                }
+                if (col + word.length > gridLength) {
+                    // if it does, try again
+                    row = Math.floor(Math.random() * gridLength);
+                    col = Math.floor(Math.random() * gridLength);
+                }
+                
+                // check if words will collide with each other
+                for (let i = 0; i < word.length; i++) {
+                    if (grid[row][col + i] != '_' && grid[row][col + i] != word[i]) {
+                        // if it does, reduce one row and try again
+                        row--;
+                        if(row < 0){
+                            row++;
+                            col = Math.floor(Math.random() * gridLength);
+                        }
+                        i = -1;
+                    }
+                }
+                for (let i = 0; i < word.length; i++) {
+                    grid[row][col + i] = word[i];
+                }
+            } else {
+                // check if have spaces for all the letters and if the word will be out of the grid
+                let doneWithPosition = false;
+                while (!doneWithPosition) {
+                    if (row + word.length > gridLength) {
+                        // if it does, try again
+                        row = Math.floor(Math.random() * gridLength);
+                    } else {
+                        doneWithPosition = true;
+                    }
+                }
+                
+                // check if words will collide with each other
+                for (let i = 0; i < word.length; i++) {
+                    if (grid[row + i] && grid[row + i][col] != '_' && grid[row + i][col] != word[i]) {
+                        // if it does, reduce one col and try again
+                        col--;
+                        if(col < 0){
+                            col++;
+                            row = Math.floor(Math.random() * gridLength);
+                        }
+                        i = -1;
+                    }
+                }
+                
+                for (let i = 0; i < word.length; i++) {
+                    if(!grid[row + i]){
+                        grid[row + i] = [];
+                    }
+                    grid[row + i][col] = word[i];
+                }
+            }
+        }
+
+        // Get the highest array length
+        let highestArrayLength = 0;
+        for (const row of grid) {
+            if (row.length > highestArrayLength) {
+                highestArrayLength = row.length;
+            }
+        }
+
+        // Fill the rest of the arrays with empty strings
+        for (const row of grid) {
+            while (row.length < highestArrayLength) {
+                row.push('_');
+            }
+        }
+        for (let i = 0; i < grid.length; i++) {
+            for (let j = 0; j < grid[i].length; j++) {
+                if (typeof(grid[i][j]) != "undefined" && grid[i][j] === '_') {
+                    grid[i][j] = letters[Math.floor(Math.random() * 26)];
+                }
+            }
+        }
+
+        // Get table container
+        const container = document.getElementById('container');
+        // empty container first
+        container.innerHTML = '';
+        // generate table with grids
+        for (const row of grid) {
+            const rowElement = document.createElement('tr');
+            for (const cell of row) {
+                const cellElement = document.createElement('td');
+                
+                // check if cell is lowercased
+                let cellLowercased = cell.toLowerCase();
+                if (cell === cellLowercased) {
+                    // create data atributte to show letter on hover
+                    cellElement.setAttribute('data-letter', 'wordChased');
+                } else {
+                    // create data atributte to show letter on hover
+                    cellElement.setAttribute('data-letter', 'wordNotChased');
+                }
+                
+                cellElement.textContent = cell.toUpperCase();
+                rowElement.appendChild(cellElement);
+            }
+            container.appendChild(rowElement);
+        } 
+        let doneWithPosition = false;
+        // Show highlight button
+        document.getElementById("highlight").style.display = "block";
+    }
+
+    // Show words on press button
+    function switchWordChasedHighlight() {
+        highlightChasedWords = !highlightChasedWords;
+        const cells = document.querySelectorAll('td');
+        for (const cell of cells) {
+            if (cell.getAttribute('data-letter') === 'wordChased') {
+                if (highlightChasedWords) {
+                    cell.style.backgroundColor = '#c5c5c5';
+                } else {
+                    cell.style.backgroundColor = 'white';
+                }
+            }
+        }
+    }
+
+    </script>
+</body>
+</html>
